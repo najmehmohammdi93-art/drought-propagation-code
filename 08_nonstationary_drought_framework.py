@@ -3,7 +3,7 @@
 #
 # Implements a 10-Year Trailing Monthly Climatology
 # for calculation of the Non-Stationary Standardized
-# Soil Moisture Index (NSSI3).
+# Soil Moisture Index (NSSMI3).
 #
 # Monthly standardization is performed using the
 # previous 10 years of the same calendar month.
@@ -37,7 +37,7 @@ ndvi_anom = pd.read_csv(
 ).iloc[:, 0]
 
 # -------------------------------------------------------------------------
-# 2. Build Non-Stationary SSI3 (NSSI3)
+# 2. Build Non-Stationary SSMI3 (NSSMI3)
 #    10-Year Trailing Monthly Climatology
 # -------------------------------------------------------------------------
 
@@ -49,7 +49,7 @@ df = pd.DataFrame({
 df["year"] = df["time"].year
 df["month"] = df["time"].month
 
-nssi_values = []
+nssmi_values = []
 
 for _, row in df.iterrows():
 
@@ -64,23 +64,23 @@ for _, row in df.iterrows():
 
     # Require sufficient historical observations
     if len(history) < 8:
-        nssi_values.append(np.nan)
+        nssmi_values.append(np.nan)
         continue
 
     mu = history.mean()
     sigma = history.std()
 
     if sigma == 0:
-        nssi_values.append(np.nan)
+        nssmi_values.append(np.nan)
     else:
-        nssi_values.append(
+        nssmi_values.append(
             (row["rzsm"] - mu) / sigma
         )
 
-df["NSSI3"] = nssi_values
+df["NSSMI3"] = nssmi_values
 
-nssi3_all = pd.Series(
-    df["NSSI3"].values,
+nssmi3_all = pd.Series(
+    df["NSSMI3"].values,
     index=df["time"]
 ).dropna()
 
@@ -93,14 +93,14 @@ validation_scope = slice(
     "2025-12-01"
 )
 
-nssi3 = nssi3_all.loc[validation_scope]
+nssmi3 = nssmi3_all.loc[validation_scope]
 
 ndvi_validation = ndvi_anom.loc[
     validation_scope
 ]
 
 # -------------------------------------------------------------------------
-# 4. Stationary SSI3 Reference
+# 4. Stationary SSMI3 Reference
 #    Fixed Baseline: 2000–2014
 # -------------------------------------------------------------------------
 
@@ -111,7 +111,7 @@ ref_period = rzsm_series.loc[
 ref_mean = ref_period.mean()
 ref_std = ref_period.std()
 
-ssi3 = (
+ssmi3 = (
     (rzsm_series - ref_mean)
     / ref_std
 ).loc[validation_scope]
@@ -182,16 +182,16 @@ def peak_parameters(
 
     return peak_r, peak_lag, r_values
 
-ssi_peak_r, ssi_peak_lag, ssi_curve = (
+ssmi_peak_r, ssmi_peak_lag, ssmi_curve = (
     peak_parameters(
-        ssi3,
+        ssmi3,
         ndvi_validation
     )
 )
 
-nssi_peak_r, nssi_peak_lag, nssi_curve = (
+nssmi_peak_r, nssmi_peak_lag, nssmi_curve = (
     peak_parameters(
-        nssi3,
+        nssmi3,
         ndvi_validation
     )
 )
@@ -205,18 +205,18 @@ print("GRASSLAND DROUGHT PROPAGATION ANALYSIS")
 print("=" * 70)
 
 print(
-    f"SSI3 Peak r = {ssi_peak_r:.3f} "
-    f"(Lag = {ssi_peak_lag} months)"
+    f"SSMI3 Peak r = {ssmi_peak_r:.3f} "
+    f"(Lag = {ssmi_peak_lag} months)"
 )
 
 print(
-    f"NSSI3 Peak r = {nssi_peak_r:.3f} "
-    f"(Lag = {nssi_peak_lag} months)"
+    f"NSSMI3 Peak r = {nssmi_peak_r:.3f} "
+    f"(Lag = {nssmi_peak_lag} months)"
 )
 
 print(
     f"Delta r = "
-    f"{nssi_peak_r - ssi_peak_r:+.3f}"
+    f"{nssmi_peak_r - ssmi_peak_r:+.3f}"
 )
 
 print("=" * 70)
@@ -230,16 +230,16 @@ plt.figure(
 )
 
 plt.plot(
-    ssi3.index,
-    ssi3,
-    label="SSI3",
+    ssmi3.index,
+    ssmi3,
+    label="SSMI3",
     linewidth=2
 )
 
 plt.plot(
-    nssi3.index,
-    nssi3,
-    label="NSSI3",
+    nssmi3.index,
+    nssmi3,
+    label="NSSMI3",
     linewidth=2
 )
 
@@ -273,18 +273,18 @@ plt.figure(
 
 plt.plot(
     lags,
-    ssi_curve,
+    ssmi_curve,
     marker="o",
     linewidth=2,
-    label="SSI3"
+    label="SSMI3"
 )
 
 plt.plot(
     lags,
-    nssi_curve,
+    nssmi_curve,
     marker="s",
     linewidth=2,
-    label="NSSI3"
+    label="NSSMI3"
 )
 
 plt.axhline(
