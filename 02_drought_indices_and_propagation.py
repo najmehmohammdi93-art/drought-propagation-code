@@ -19,29 +19,29 @@ rzsm_stack = rxr.open_rasterio("Iran_RZSM_312months.tif")
 time_coords = pd.date_range(start='2000-01-01', end='2025-12-01', freq='MS')
 rzsm = rzsm_stack.assign_coords(band=time_coords).rename({'band': 'time'})
 
-# 2. Compute 1-Month (SSI1) vs 3-Month (SSI3) Standardized Soil Moisture Indices
-print("Calculating Standardized Indices (SSI1 and SSI3)...")
+# 2. Compute 1-Month (SSMI1) vs 3-Month (SSMI3) Standardized Soil Moisture Indices
+print("Calculating Standardized Indices (SSMI1 and SSMI3)...")
 
-# SSI1 (Short-term variations)
+# SSMI1 (Short-term variations)
 mean_1m = rzsm.groupby('time.month').mean('time')
 std_1m = rzsm.groupby('time.month').std('time')
-ssi1 = (rzsm.groupby('time.month') - mean_1m) / std_1m
-ssi1 = ssi1.drop_vars('month')
+ssmi1 = (rzsm.groupby('time.month') - mean_1m) / std_1m
+ssmi1 = ssmi1.drop_vars('month')
 
-# SSI3 (3-Month rolling cumulative window - Selected Primary Indicator)
+# SSMI3 (3-Month rolling cumulative window - Selected Primary Indicator)
 rzsm_3m = rzsm.rolling(time=3, center=False).mean()
 mean_3m = rzsm_3m.groupby('time.month').mean('time')
 std_3m = rzsm_3m.groupby('time.month').std('time')
-ssi3 = (rzsm_3m.groupby('time.month') - mean_3m) / std_3m
-ssi3 = ssi3.drop_vars('month')
+ssmi3 = (rzsm_3m.groupby('time.month') - mean_3m) / std_3m
+ssmi3 = ssmi3.drop_vars('month')
 
 # 3. Spatial Aggregation over Vegetated Zone & Drought Event Tracking via Theory of Runs
 print("Executing Theory of Runs for Drought Event Identification...")
-iran_ssi3_series = ssi3.mean(dim=['y', 'x']).to_pandas()
+iran_ssmi3_series = ssmi3.mean(dim=['y', 'x']).to_pandas()
 
 # Implement Run Analysis thresholding (Threshold = -1.0 according to section 2-3-3)
 drought_threshold = -1.0
-is_drought = iran_ssi3_series <= drought_threshold
+is_drought = iran_ssmi3_series <= drought_threshold
 
 drought_events = []
 in_event = False
@@ -53,41 +53,41 @@ for date, val in is_drought.items():
         in_event = True
     elif not val and in_event:
         end_date = date - pd.DateOffset(months=1)
-        event_clip = iran_ssi3_series[start_date:end_date]
+        event_clip = iran_ssmi3_series[start_date:end_date]
         
         duration = len(event_clip)
-        peak_ssi = event_clip.min()
+        peak_ssmi = event_clip.min()
         cumulative_severity = event_clip.sum()
         
         # Classify Category according to paper criteria
         category = "Moderate"
-        if peak_ssi <= -2.01: category = "Extreme"
-        elif peak_ssi <= -1.70: category = "Severe"
+        if peak_ssmi <= -2.01: category = "Extreme"
+        elif peak_ssmi <= -1.70: category = "Severe"
         
-        drought_events.append([start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'), duration, peak_ssi, cumulative_severity, category])
+        drought_events.append([start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'), duration, peak_ssmi, cumulative_severity, category])
         in_event = False
 
-events_df = pd.DataFrame(drought_events, columns=['Start', 'End', 'Duration(Months)', 'Peak SSI3', 'Severity', 'Category'])
+events_df = pd.DataFrame(drought_events, columns=['Start', 'End', 'Duration(Months)', 'Peak SSMI3', 'Severity', 'Category'])
 print("\nIsolated Historical Major Drought Events (Table 2 Match):")
 print(events_df)
 events_df.to_csv("Isolated_Drought_Events_Table2.csv", index=False)
 
-# 4. Generate Core Figure: Iran Vegetated Mean SSI3 (Figure 4 Match)
+# 4. Generate Core Figure: Iran Vegetated Mean SSMI3 (Figure 4 Match)
 plt.figure(figsize=(14, 5))
-plt.plot(iran_ssi3_series.index, iran_ssi3_series.values, color='black', linewidth=1.5, label='Spatially Averaged SSI3')
+plt.plot(iran_ssmi3_series.index, iran_ssmi3_series.values, color='black', linewidth=1.5, label='Spatially Averaged SSMI3')
 plt.axhline(-1.0, color='orange', linestyle='--', linewidth=1.2, label='Moderate Drought (-1.0)')
 plt.axhline(-1.5, color='red', linestyle='--', linewidth=1.2, label='Severe Drought (-1.5)')
 plt.axhline(-2.0, color='darkred', linestyle='--', linewidth=1.2, label='Extreme Drought (-2.0)')
-plt.title('Iran Vegetated Mean SSI3 Timeline (2000–2025)', fontsize=14, fontweight='bold')
-plt.ylabel('SSI3 Value')
+plt.title('Iran Vegetated Mean SSMI3 Timeline (2000–2025)', fontsize=14, fontweight='bold')
+plt.ylabel('SSMI3 Value')
 plt.xlabel('Year')
 plt.grid(alpha=0.3)
 plt.legend(loc='lower left')
 plt.tight_layout()
-plt.savefig("Fig4_Iran_Mean_SSI3.tif", dpi=300, bbox_inches='tight')
+plt.savefig("Fig4_Iran_Mean_SSMI3.tif", dpi=300, bbox_inches='tight')
 plt.close()
 
-# 5. Ecosystem Scale Lagged Correlation Modeling (SSI3 vs NDVI Anomalies)
+# 5. Ecosystem Scale Lagged Correlation Modeling (SSMI3 vs NDVI Anomalies)
 # Note: Input dummy NDVI_anom for structural completeness, load actual NDVI matrices for computation
 print("Computing Ecosystem-Specific Lagged Propagation Vectors (0-12 Months)...")
 
@@ -122,7 +122,7 @@ plt.tight_layout()
 plt.savefig("Fig5_Ecosystem_Propagation_Curves.tif", dpi=300, bbox_inches='tight')
 plt.close()
 
-# 6. Non-Stationary SSI Framework Setup (NSSI3 - Section 2-3-6 & 3-7 Match)
+# 6. Non-Stationary SSMI Framework Setup (NSSMI3 - Section 2-3-6 & 3-7 Match)
 print("Evaluating Non-stationary Framework (Moving Baseline Adjustments)...")
 # Splitting timeline according to methodology: 2000-2014 Reference vs 2015-2025 Evaluation Window
 # Computes localized sliding parameters using a centered rolling baseline window
