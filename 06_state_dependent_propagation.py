@@ -12,13 +12,13 @@ from scipy.stats import pearsonr
 
 # 1. Load Ecosystem Time series extracted from File 04
 # Loading Forest as primary example for scripting completeness
-ssi3_series = pd.read_csv("forest_ssi3.csv", index_col=0, parse_dates=True).iloc[:,0]
+ssmi3_series = pd.read_csv("forest_ssmi3.csv", index_col=0, parse_dates=True).iloc[:,0]
 ndvi_series = pd.read_csv("forest_ndvi.csv", index_col=0, parse_dates=True).iloc[:,0]
 
 # 2. Partition Temporal Indexes based on Hydroclimatic Background States
-wet_indices = ssi3_series > 0.5
-normal_indices = (ssi3_series >= -0.5) & (ssi3_series <= 0.5)
-dry_indices = ssi3_series < -0.5
+wet_indices = ssmi3_series > 0.5
+normal_indices = (ssmi3_series >= -0.5) & (ssmi3_series <= 0.5)
+dry_indices = ssmi3_series < -0.5
 
 def get_state_lagged_r(forcing, response, structural_mask, max_lag=12):
     r_vals = []
@@ -38,16 +38,16 @@ def get_state_lagged_r(forcing, response, structural_mask, max_lag=12):
             r_vals.append(np.nan)
     return r_vals
 
-forest_wet_r = get_state_lagged_r(ssi3_series, ndvi_series, wet_indices)
-forest_norm_r = get_state_lagged_r(ssi3_series, ndvi_series, normal_indices)
-forest_dry_r = get_state_lagged_r(ssi3_series, ndvi_series, dry_indices)
+forest_wet_r = get_state_lagged_r(ssmi3_series, ndvi_series, wet_indices)
+forest_norm_r = get_state_lagged_r(ssmi3_series, ndvi_series, normal_indices)
+forest_dry_r = get_state_lagged_r(ssmi3_series, ndvi_series, dry_indices)
 
 # 3. Create Multi-state Analysis Curves Plot (Figure 8 Structure)
 lags = np.arange(0, 13)
 plt.figure(figsize=(7, 5))
-plt.plot(lags, forest_wet_r, marker='o', color='blue', linestyle='-', label='Wet State (SSI3 > 0.5)')
-plt.plot(lags, forest_norm_r, marker='s', color='green', linestyle='--', label='Normal State (-0.5 <= SSI3 <= 0.5)')
-plt.plot(lags, forest_dry_r, marker='^', color='red', linestyle='-.', label='Dry State (SSI3 < -0.5)')
+plt.plot(lags, forest_wet_r, marker='o', color='blue', linestyle='-', label='Wet State (SSMI3 > 0.5)')
+plt.plot(lags, forest_norm_r, marker='s', color='green', linestyle='--', label='Normal State (-0.5 <= SSMI3 <= 0.5)')
+plt.plot(lags, forest_dry_r, marker='^', color='red', linestyle='-.', label='Dry State (SSMI3 < -0.5)')
 plt.axhline(0, color='black', alpha=0.3)
 plt.title('Forest State-Dependent Propagation Response (Figure 8 Match)')
 plt.xlabel('Lag Intervals (Months)')
