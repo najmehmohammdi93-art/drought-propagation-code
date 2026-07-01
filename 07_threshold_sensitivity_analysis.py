@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 
-ssi3 = pd.read_csv("cropland_ssi3.csv", index_col=0, parse_dates=True).iloc[:,0]
+ssmi3 = pd.read_csv("cropland_ssmi3.csv", index_col=0, parse_dates=True).iloc[:,0]
 ndvi = pd.read_csv("cropland_ndvi.csv", index_col=0, parse_dates=True).iloc[:,0]
 
 thresholds = [-0.5, -0.75, -1.0]
@@ -17,17 +17,17 @@ plt.figure(figsize=(8, 5))
 
 for ts, col in zip(thresholds, colors):
     # Isolate timestamps where conditions drop below targeted severe filters
-    active_mask = ssi3 < ts
+    active_mask = ssmi3 < ts
     
     r_sensitivity = []
     for lag in range(13):
         if lag == 0:
-            r, _ = pearsonr(ssi3[active_mask], ndvi[active_mask])
+            r, _ = pearsonr(ssmi3[active_mask], ndvi[active_mask])
         else:
-            r, _ = pearsonr(ssi3[:-lag][active_mask[:-lag]], ndvi[lag:][active_mask[:-lag]])
+            r, _ = pearsonr(ssmi3[:-lag][active_mask[:-lag]], ndvi[lag:][active_mask[:-lag]])
         r_sensitivity.append(r)
         
-    plt.plot(np.arange(13), r_sensitivity, marker='o', color=col, linewidth=2, label=f'Threshold Condition (SSI3 < {ts})')
+    plt.plot(np.arange(13), r_sensitivity, marker='o', color=col, linewidth=2, label=f'Threshold Condition (SSMI3 < {ts})')
 
 plt.axhline(0, color='gray', linestyle=':')
 plt.title('Cropland Sensitivity Analysis Curves (Figure 9 Match)')
