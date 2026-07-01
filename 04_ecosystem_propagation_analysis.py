@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 
 # 1. Load NetCDF/TIFF Multi-band Data Stacks
-ssi3_stack = rxr.open_rasterio("Iran_SSI3_312months.tif")
+ssmi3_stack = rxr.open_rasterio("Iran_SSMI3_312months.tif")
 ndvi_anom_stack = rxr.open_rasterio("Iran_NDVI_Anom_312months.tif")
 ecosystem_mask = rxr.open_rasterio("Iran_Ecosystem_Mask.tif").isel(band=0) # Zonal boundaries
 
 timeline = pd.date_range('2000-01-01', '2025-12-01', freq='MS')
-ssi3 = ssi3_stack.assign_coords(band=timeline).rename({'band': 'time'})
+ssmi3 = ssmi3_stack.assign_coords(band=timeline).rename({'band': 'time'})
 ndvi_anom = ndvi_anom_stack.assign_coords(band=timeline).rename({'band': 'time'})
 
 # 2. Extract Real Spatially Averaged Ecosystem Time Series
@@ -25,9 +25,9 @@ def get_ecosystem_series(data_cube, eco_id):
     return masked_cube.mean(dim=['y', 'x']).to_pandas().dropna()
 
 print("Extracting actual ecosystem timelines...")
-forest_ssi3, forest_ndvi = get_ecosystem_series(ssi3, 1), get_ecosystem_series(ndvi_anom, 1)
-grass_ssi3, grass_ndvi   = get_ecosystem_series(ssi3, 3), get_ecosystem_series(ndvi_anom, 3)
-crop_ssi3, crop_ndvi     = get_ecosystem_series(ssi3, 4), get_ecosystem_series(ndvi_anom, 4)
+forest_ssmi3, forest_ndvi = get_ecosystem_series(ssmi3, 1), get_ecosystem_series(ndvi_anom, 1)
+grass_ssmi3, grass_ndvi   = get_ecosystem_series(ssmi3, 3), get_ecosystem_series(ndvi_anom, 3)
+crop_ssmi3, crop_ndvi     = get_ecosystem_series(ssmi3, 4), get_ecosystem_series(ndvi_anom, 4)
 
 # 3. Dynamic Pearson r Execution Function
 def calculate_propagation_vector(forcing, response, max_lag=12):
@@ -41,9 +41,9 @@ def calculate_propagation_vector(forcing, response, max_lag=12):
     return r_vector
 
 print("Calculating Pearson coefficients across 0-12 months lag...")
-forest_r = calculate_propagation_vector(forest_ssi3, forest_ndvi)
-grass_r  = calculate_propagation_vector(grass_ssi3, grass_ndvi)
-crop_r   = calculate_propagation_vector(crop_ssi3, crop_ndvi)
+forest_r = calculate_propagation_vector(forest_ssmi3, forest_ndvi)
+grass_r  = calculate_propagation_vector(grass_ssmi3, grass_ndvi)
+crop_r   = calculate_propagation_vector(crop_ssmi3, crop_ndvi)
 
 # 4. Save Vector Logs and plot Core Manuscript Curves (Figure 5)
 lags = np.arange(0, 13)
